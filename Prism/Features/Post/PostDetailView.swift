@@ -460,6 +460,8 @@ struct PostActionBar: View {
                 Button(action: onReply) {
                     Label("Reply", systemImage: "arrowshape.turn.up.left.fill")
                         .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .fixedSize()
                         .padding(.horizontal, 16)
                         .padding(.vertical, 13)
                 }
