@@ -95,6 +95,7 @@ struct Avatar: View {
     let url: URL?
     var size: CGFloat = 36
     var fallback: String = "person.fill"
+    @Environment(ThemeManager.self) private var theme
 
     var body: some View {
         Group {
@@ -109,7 +110,7 @@ struct Avatar: View {
                     .font(.system(size: size * 0.45, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.accentColor.gradient)
+                    .background(theme.accent.gradient)
             }
         }
         .frame(width: size, height: size)

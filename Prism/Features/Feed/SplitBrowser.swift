@@ -37,6 +37,7 @@ struct HomeRoot: View {
 struct SplitBrowser: View {
     @Environment(Router.self) private var router
     @Environment(AuthManager.self) private var auth
+    @Environment(ThemeManager.self) private var theme
 
     @State private var source: FeedSource = .home
     @State private var selected: Post?
@@ -100,7 +101,7 @@ struct SplitBrowser: View {
                     .buttonStyle(.plain)
                     .glassEffect(
                         source == option
-                            ? .regular.tint(Color.accentColor.opacity(0.55)).interactive()
+                            ? .regular.tint(theme.accent.opacity(0.55)).interactive()
                             : .regular.interactive(),
                         in: .capsule
                     )

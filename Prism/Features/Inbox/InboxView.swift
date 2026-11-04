@@ -17,6 +17,7 @@ struct InboxView: View {
 struct InboxList: View {
     @Environment(RedditClient.self) private var client
     @Environment(Router.self) private var router
+    @Environment(ThemeManager.self) private var theme
 
     @State private var box: InboxBox = .inbox
     @State private var messages: [Message] = []
@@ -42,7 +43,7 @@ struct InboxList: View {
                             } label: {
                                 Image(systemName: "envelope.open")
                             }
-                            .tint(.accentColor)
+                            .tint(theme.accent)
                         }
                     }
             }
@@ -173,7 +174,7 @@ struct MessageRow: View {
             }
             if unread {
                 Circle()
-                    .fill(Color.accentColor)
+                    .fill(.tint)
                     .frame(width: 8, height: 8)
                     .padding(.top, 6)
             }

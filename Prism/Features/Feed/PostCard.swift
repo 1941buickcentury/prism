@@ -5,12 +5,15 @@ struct PostCard: View {
     var onSelect: ((Post) -> Void)? = nil
     var isSelected: Bool = false
     @Environment(Router.self) private var router
+    @AppStorage("compactMode") private var compact = false
+
+    private var radius: CGFloat { compact ? 18 : 26 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: compact ? 6 : 10) {
             PostMetaLine(post: post)
             Text(post.title)
-                .font(.headline)
+                .font(compact ? .subheadline.weight(.semibold) : .headline)
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.leading)
             PostBadges(post: post)
@@ -19,20 +22,20 @@ struct PostCard: View {
                 MarkdownText(text: text)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    .lineLimit(4)
+                    .lineLimit(compact ? 2 : 4)
             }
             PostActionsRow(post: post)
         }
-        .padding(14)
+        .padding(compact ? 11 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 26)
+        .glassCard(cornerRadius: radius)
         .overlay {
             if isSelected {
-                RoundedRectangle(cornerRadius: 26)
+                RoundedRectangle(cornerRadius: radius)
                     .strokeBorder(.tint, lineWidth: 2)
             }
         }
-        .contentShape(.rect(cornerRadius: 26))
+        .contentShape(.rect(cornerRadius: radius))
         .onTapGesture {
             if let onSelect {
                 onSelect(post)
@@ -81,6 +84,7 @@ struct PostMetaLine: View {
 
 struct PostBadges: View {
     let post: Post
+    @Environment(ThemeManager.self) private var theme
 
     private var flair: String? {
         guard let text = post.linkFlairText?.trimmed, !text.isEmpty else { return nil }
@@ -92,7 +96,7 @@ struct PostBadges: View {
             HStack(spacing: 6) {
                 if post.over18 == true { Pill(text: "NSFW", color: .red) }
                 if post.spoiler == true { Pill(text: "Spoiler", color: .gray) }
-                if let flair { Pill(text: flair, color: .accentColor) }
+                if let flair { Pill(text: flair, color: theme.accent) }
             }
         }
     }

@@ -58,6 +58,8 @@ struct FeedView: View {
     @Environment(ActionStore.self) private var actions
     @Environment(\.horizontalSizeClass) private var hSize
     @Environment(Router.self) private var router
+    @Environment(ThemeManager.self) private var theme
+    @AppStorage("compactMode") private var compact = false
     private let onSelect: ((Post) -> Void)?
     private let selectedName: String?
 
@@ -136,7 +138,7 @@ struct FeedView: View {
                 }
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 36), GridItem(.flexible())],
                           alignment: .center,
-                          spacing: 14) {
+                          spacing: compact ? 8 : 14) {
                     ForEach(model.posts) { post in
                         PostCard(post: post)
                             .contextMenu { postMenu(post) }
@@ -207,7 +209,7 @@ struct FeedView: View {
                 PostCard(post: post,
                          onSelect: onSelect,
                          isSelected: onSelect != nil && post.name == selectedName)
-                    .plainRow()
+                    .plainRow(vertical: compact ? 3 : 6)
                     .onAppear { loadMoreIfLast(post) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
@@ -269,6 +271,7 @@ struct SortMenu: View {
 /// Home tab: the front page with floating glass chips for Home, Popular and All.
 struct HomeView: View {
     @Environment(AuthManager.self) private var auth
+    @Environment(ThemeManager.self) private var theme
     @State private var source: FeedSource = .home
     @Namespace private var chips
 
@@ -292,7 +295,7 @@ struct HomeView: View {
                             .buttonStyle(.plain)
                             .glassEffect(
                                 source == option
-                                    ? .regular.tint(Color.accentColor.opacity(0.55)).interactive()
+                                    ? .regular.tint(theme.accent.opacity(0.55)).interactive()
                                     : .regular.interactive(),
                                 in: .capsule
                             )

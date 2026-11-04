@@ -14,7 +14,7 @@ A Reddit client for iOS 27.1 in the spirit of Boost and Apollo, built in SwiftUI
 - **Inbox:** inbox, unread and sent, with unread count on the tab, mark read and reply.
 - **Profile:** your posts, comments, saved and upvoted items; other users' profiles too.
 - **Search:** posts and communities, plus quick "Go to r/…" jumps.
-- **Settings:** API keys, glass cards on/off, NSFW blur, default comment sort, open links in app.
+- **Settings:** API keys, accent color, compact layout, glass cards on/off, NSFW blur, default comment sort, open links in app.
 
 ### iPhone Duo
 

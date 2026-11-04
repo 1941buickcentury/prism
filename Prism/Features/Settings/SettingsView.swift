@@ -82,7 +82,9 @@ struct LabeledField: View {
 
 struct SettingsView: View {
     @Environment(AuthManager.self) private var auth
+    @Environment(ThemeManager.self) private var theme
     @AppStorage("glassCards") private var glassCards = true
+    @AppStorage("compactMode") private var compact = false
     @AppStorage("blurNSFW") private var blurNSFW = true
     @AppStorage("openLinksInApp") private var openLinksInApp = true
     @AppStorage("commentSort") private var commentSort = CommentSort.confidence.rawValue
@@ -128,7 +130,35 @@ struct SettingsView: View {
             }
 
             Section("Appearance") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Accent color")
+                    HStack(spacing: 14) {
+                        ForEach(AppAccent.allCases) { accent in
+                            Button {
+                                theme.accentID = accent.id
+                            } label: {
+                                Circle()
+                                    .fill(accent.color)
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        if theme.accentID == accent.id {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                    .overlay {
+                                        Circle().strokeBorder(.primary.opacity(theme.accentID == accent.id ? 0.5 : 0), lineWidth: 2)
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(accent.title)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
                 Toggle("Liquid Glass cards", isOn: $glassCards)
+                Toggle("Compact layout", isOn: $compact)
                 Toggle("Blur NSFW and spoilers", isOn: $blurNSFW)
             }
 

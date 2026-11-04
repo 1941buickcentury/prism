@@ -5,6 +5,7 @@ struct PrismApp: App {
     @State private var auth: AuthManager
     @State private var client: RedditClient
     @State private var actions: ActionStore
+    @State private var theme = ThemeManager()
 
     init() {
         URLCache.shared = URLCache(memoryCapacity: 64 * 1024 * 1024, diskCapacity: 512 * 1024 * 1024)
@@ -21,6 +22,8 @@ struct PrismApp: App {
                 .environment(auth)
                 .environment(client)
                 .environment(actions)
+                .environment(theme)
+                .tint(theme.accent)
         }
     }
 }

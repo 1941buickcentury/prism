@@ -165,6 +165,7 @@ struct PostDetailView: View {
     @Environment(Router.self) private var router
     @AppStorage("commentSort") private var defaultSort = CommentSort.confidence.rawValue
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(ThemeManager.self) private var theme
     private let preferStacked: Bool
 
     init(post: Post, preferStacked: Bool = false) {
@@ -347,7 +348,7 @@ struct PostDetailView: View {
                     } label: {
                         Image(systemName: "arrowshape.turn.up.left.fill")
                     }
-                    .tint(.accentColor)
+                    .tint(theme.accent)
                     Button {
                         withAnimation(.snappy) { model.toggleCollapse(comment.name) }
                     } label: {
