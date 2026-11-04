@@ -97,6 +97,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        @Bindable var theme = theme
         Form {
             Section {
                 TextField("Client ID", text: $clientID)
@@ -130,6 +131,11 @@ struct SettingsView: View {
             }
 
             Section("Appearance") {
+                Picker("Theme", selection: $theme.appearanceID) {
+                    ForEach(AppAppearance.allCases) { option in
+                        Text(option.title).tag(option.id)
+                    }
+                }
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Accent color")
                     HStack(spacing: 14) {

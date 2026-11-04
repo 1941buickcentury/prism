@@ -32,6 +32,7 @@ struct RootView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(RedditClient.self) private var client
     @Environment(ActionStore.self) private var actions
+    @Environment(ThemeManager.self) private var theme
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -43,6 +44,7 @@ struct RootView: View {
                 SetupView()
             }
         }
+        .preferredColorScheme(theme.colorScheme)
         .task(id: auth.isLoggedIn) {
             await client.refreshAccount()
         }

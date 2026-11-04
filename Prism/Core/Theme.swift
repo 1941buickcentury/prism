@@ -1,6 +1,29 @@
 import SwiftUI
 import Observation
 
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark, black
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        case .black: return "Pure Black"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark, .black: return .dark
+        }
+    }
+}
+
 enum AppAccent: String, CaseIterable, Identifiable {
     case redline, sunflower, emerald, azure, violet, magenta, graphite
 
@@ -40,8 +63,13 @@ final class ThemeManager {
         didSet { UserDefaults.standard.set(accentID, forKey: "accentID") }
     }
 
+    var appearanceID: String {
+        didSet { UserDefaults.standard.set(appearanceID, forKey: "appearanceID") }
+    }
+
     init() {
         accentID = UserDefaults.standard.string(forKey: "accentID") ?? AppAccent.redline.id
+        appearanceID = UserDefaults.standard.string(forKey: "appearanceID") ?? AppAppearance.system.id
     }
 
     var selected: AppAccent {
@@ -49,4 +77,12 @@ final class ThemeManager {
     }
 
     var accent: Color { selected.color }
+
+    var appearance: AppAppearance {
+        AppAppearance(rawValue: appearanceID) ?? .system
+    }
+
+    var colorScheme: ColorScheme? { appearance.colorScheme }
+
+    var pureBlack: Bool { appearance == .black }
 }

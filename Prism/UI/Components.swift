@@ -6,19 +6,24 @@ import SafariServices
 /// A soft mesh gradient behind every screen, so the Liquid Glass surfaces have color to bend.
 struct AmbientBackground: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(ThemeManager.self) private var theme
 
     var body: some View {
-        MeshGradient(
-            width: 3,
-            height: 3,
-            points: [
-                [0, 0], [0.5, 0], [1, 0],
-                [0, 0.5], [0.55, 0.45], [1, 0.5],
-                [0, 1], [0.5, 1], [1, 1]
-            ],
-            colors: scheme == .dark ? Self.dark : Self.light
-        )
-        .ignoresSafeArea()
+        if theme.pureBlack {
+            Color.black.ignoresSafeArea()
+        } else {
+            MeshGradient(
+                width: 3,
+                height: 3,
+                points: [
+                    [0, 0], [0.5, 0], [1, 0],
+                    [0, 0.5], [0.55, 0.45], [1, 0.5],
+                    [0, 1], [0.5, 1], [1, 1]
+                ],
+                colors: scheme == .dark ? Self.dark : Self.light
+            )
+            .ignoresSafeArea()
+        }
     }
 
     private static let dark: [Color] = [
