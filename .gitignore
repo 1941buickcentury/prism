@@ -1,0 +1,9 @@
+*.xcodeproj
+Prism/Info.plist
+build/
+Payload/
+*.ipa
+build.log
+.DS_Store
+xcuserdata/
+DerivedData/
