@@ -18,7 +18,7 @@ A Reddit client for iOS 27.1 in the spirit of Boost and Apollo, built in SwiftUI
 
 ### iPhone Duo
 
-- **Inner display:** the feed becomes two columns of cards, with the gap down the middle so cards stay off the fold. The tab bar can become a sidebar.
+- **Inner display:** the Home feed becomes a two-pane browser — the feed on the left, the selected post and its comments on the right — so picking a post opens it beside the list instead of covering it. The tab bar can become a sidebar.
 - **Posts:** on the inner display the post and its comments sit side by side, using iOS 27.1's `ArrangementView` split so each pane gets its own side of the fold.
 - **Tabletop pose:** half-fold the Duo while viewing an image or video and the media moves above the fold, with the controls and caption below it.
 - **Outer display:** the normal iPhone layout.

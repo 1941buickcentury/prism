@@ -165,18 +165,21 @@ struct PostDetailView: View {
     @Environment(Router.self) private var router
     @AppStorage("commentSort") private var defaultSort = CommentSort.confidence.rawValue
     @Environment(\.horizontalSizeClass) private var hSize
+    private let preferStacked: Bool
 
-    init(post: Post) {
+    init(post: Post, preferStacked: Bool = false) {
+        self.preferStacked = preferStacked
         _model = State(initialValue: PostDetailModel(postID: post.id, post: post, focus: nil))
     }
 
-    init(id: String, focus: String?) {
+    init(id: String, focus: String?, preferStacked: Bool = false) {
+        self.preferStacked = preferStacked
         _model = State(initialValue: PostDetailModel(postID: id, post: nil, focus: focus))
     }
 
     var body: some View {
         Group {
-            if hSize == .regular {
+            if hSize == .regular && !preferStacked {
                 splitLayout
             } else {
                 stackedLayout

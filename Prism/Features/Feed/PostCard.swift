@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PostCard: View {
     let post: Post
+    var onSelect: ((Post) -> Void)? = nil
+    var isSelected: Bool = false
     @Environment(Router.self) private var router
 
     var body: some View {
@@ -24,9 +26,19 @@ struct PostCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 26)
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 26)
+                    .strokeBorder(.tint, lineWidth: 2)
+            }
+        }
         .contentShape(.rect(cornerRadius: 26))
         .onTapGesture {
-            router.push(.post(post))
+            if let onSelect {
+                onSelect(post)
+            } else {
+                router.push(.post(post))
+            }
         }
     }
 }

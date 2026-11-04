@@ -62,7 +62,7 @@ struct MainTabView: View {
     var body: some View {
         TabView {
             Tab("Home", systemImage: "house.fill") {
-                TabRoot { HomeView() }
+                HomeRoot()
             }
             Tab("Subreddits", systemImage: "square.stack.3d.up.fill") {
                 TabRoot { SubredditsView() }

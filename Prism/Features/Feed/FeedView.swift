@@ -58,17 +58,27 @@ struct FeedView: View {
     @Environment(ActionStore.self) private var actions
     @Environment(\.horizontalSizeClass) private var hSize
     @Environment(Router.self) private var router
+    private let onSelect: ((Post) -> Void)?
+    private let selectedName: String?
 
-    init(source: FeedSource, initialSort: FeedSort? = nil, header: AnyView? = nil) {
+    init(source: FeedSource,
+         initialSort: FeedSort? = nil,
+         header: AnyView? = nil,
+         onSelect: ((Post) -> Void)? = nil,
+         selectedName: String? = nil) {
         self.source = source
         self.header = header
+        self.onSelect = onSelect
+        self.selectedName = selectedName
         let sort = initialSort ?? (source == .home ? .best : .hot)
         _model = State(initialValue: FeedViewModel(source: source, sort: sort))
     }
 
     var body: some View {
         Group {
-            if hSize == .regular {
+            if onSelect != nil {
+                listFeed
+            } else if hSize == .regular {
                 gridFeed
             } else {
                 listFeed
@@ -194,7 +204,9 @@ struct FeedView: View {
                 header.plainRow()
             }
             ForEach(model.posts) { post in
-                PostCard(post: post)
+                PostCard(post: post,
+                         onSelect: onSelect,
+                         isSelected: onSelect != nil && post.name == selectedName)
                     .plainRow()
                     .onAppear { loadMoreIfLast(post) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
