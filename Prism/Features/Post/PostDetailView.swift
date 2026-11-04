@@ -358,6 +358,8 @@ struct PostDetailView: View {
                 }
                 .contextMenu {
                     commentMenu(comment, depth: depth)
+                } preview: {
+                    CommentPreview(comment: comment, isOP: comment.author != nil && comment.author == model.post?.author)
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)

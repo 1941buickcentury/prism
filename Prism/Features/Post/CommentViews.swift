@@ -88,6 +88,36 @@ struct CommentRow: View {
     }
 }
 
+/// The card shown when a comment is long-pressed, so the pressed comment reads on its own
+/// instead of lifting out of the list over whatever is behind it.
+struct CommentPreview: View {
+    let comment: Comment
+    let isOP: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(comment.author ?? "[deleted]")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isOP ? Color.blue : Color.primary)
+                if isOP { Pill(text: "OP", color: .blue) }
+                if comment.distinguished == "moderator" { Pill(text: "MOD", color: .green) }
+                if let created = comment.createdUtc {
+                    Text(Date(timeIntervalSince1970: created).shortAgo)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            MarkdownText(text: comment.body ?? "")
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .padding(16)
+        .frame(maxWidth: 380, alignment: .leading)
+        .background(.regularMaterial)
+    }
+}
+
 struct MoreRow: View {
     let more: More
     let depth: Int
