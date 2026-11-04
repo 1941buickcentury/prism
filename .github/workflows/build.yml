@@ -14,7 +14,7 @@ jobs:
 
       - name: Select Xcode 27 and check for the iOS 27.1 SDK
         run: |
-          XCODE=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
+          XCODE=$(ls -d /Applications/Xcode_27*.app | grep -viE "beta|release_candidate|_rc" | sort -V | tail -1); [ -n "$XCODE" ] || XCODE=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
           echo "Using $XCODE"
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
@@ -84,7 +84,7 @@ jobs:
       - name: Select Xcode 27
         if: env.SKIP_SHOTS != '1'
         run: |
-          XCODE=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
+          XCODE=$(ls -d /Applications/Xcode_27*.app | grep -viE "beta|release_candidate|_rc" | sort -V | tail -1); [ -n "$XCODE" ] || XCODE=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
 

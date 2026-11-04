@@ -279,7 +279,9 @@ final class AuthManager {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) { return window }
         if let window = scenes.first?.windows.first { return window }
-        if let scene = scenes.first { return UIWindow(windowScene: scene) }
-        return ASPresentationAnchor()
+        guard let scene = scenes.first else {
+            preconditionFailure("Login needs an active window scene.")
+        }
+        return UIWindow(windowScene: scene)
     }
 }
