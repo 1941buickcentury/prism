@@ -26,15 +26,6 @@ private func keyWeight(_ cap: KeyCap) -> CGFloat {
     }
 }
 
-// MARK: - Glide frame collection
-
-struct KeyFramesKey: PreferenceKey {
-    static var defaultValue: [Character: CGRect] = [:]
-    static func reduce(value: inout [Character: CGRect], nextValue: () -> [Character: CGRect]) {
-        value.merge(nextValue()) { _, new in new }
-    }
-}
-
 // MARK: - A single key
 
 struct KeyButtonStyle: ButtonStyle {
@@ -132,33 +123,16 @@ struct KeyRowView: View {
             ForEach(keys.indices, id: \.self) { i in
                 KeyView(cap: keys[i], theme: theme, model: model)
                     .frame(width: max(avail * weights[i] / total, 8))
-                    .background(frameReporter(for: keys[i]))
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func frameReporter(for cap: KeyCap) -> some View {
-        if case .char(let s) = cap, let ch = s.lowercased().first, ch.isLetter {
-            GeometryReader { g in
-                Color.clear.preference(key: KeyFramesKey.self, value: [ch: g.frame(in: .named("kb"))])
             }
         }
     }
 }
 
-// MARK: - The keys area with glide
+// MARK: - The keys area
 
 struct KeysView: View {
     @ObservedObject var model: KeyboardModel
     let theme: KBTheme
-
-    @State private var frames: [Character: CGRect] = [:]
-    @State private var glideKeys: [Character] = []
-    @State private var glidePoints: [CGPoint] = []
-    @State private var gliding = false
-
-    private var canGlide: Bool { model.glideOn && model.layout == .normal && model.plane == .letters }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -166,48 +140,6 @@ struct KeysView: View {
                 KeyRowView(row: model.rows[r], theme: theme, model: model)
             }
         }
-        .coordinateSpace(name: "kb")
-        .onPreferenceChange(KeyFramesKey.self) { frames = $0 }
-        .overlay {
-            if gliding {
-                GlideTrail(points: glidePoints, color: theme.accent).allowsHitTesting(false)
-            }
-        }
-        .simultaneousGesture(glideGesture)
-    }
-
-    private var glideGesture: some Gesture {
-        DragGesture(minimumDistance: 16, coordinateSpace: .named("kb"))
-            .onChanged { value in
-                guard canGlide else { return }
-                gliding = true
-                glidePoints.append(value.location)
-                if let ch = frames.first(where: { $0.value.contains(value.location) })?.key {
-                    if glideKeys.last != ch {
-                        glideKeys.append(ch)
-                        model.haptics.glideStep()
-                    }
-                }
-            }
-            .onEnded { _ in
-                if gliding && glideKeys.count >= 2 { model.commitGlide(glideKeys) }
-                gliding = false
-                glideKeys = []
-                glidePoints = []
-            }
-    }
-}
-
-struct GlideTrail: View {
-    let points: [CGPoint]
-    let color: Color
-    var body: some View {
-        Path { p in
-            guard let first = points.first else { return }
-            p.move(to: first)
-            for pt in points.dropFirst() { p.addLine(to: pt) }
-        }
-        .stroke(color.opacity(0.65), style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
     }
 }
 
