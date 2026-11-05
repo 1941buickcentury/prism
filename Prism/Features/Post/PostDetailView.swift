@@ -157,16 +157,10 @@ final class PostDetailModel {
     }
 }
 
-struct CommentMenuTarget: Identifiable {
-    let comment: Comment
-    let depth: Int
-    var id: String { comment.name }
-}
-
 struct PostDetailView: View {
     @State private var model: PostDetailModel
     @State private var composer: ComposerTarget?
-    @State private var menuTarget: CommentMenuTarget?
+    @State private var selectedComment: String?
     @Environment(RedditClient.self) private var client
     @Environment(ActionStore.self) private var actions
     @Environment(Router.self) private var router
@@ -199,25 +193,6 @@ struct PostDetailView: View {
         .composer($composer) { thing, target in
             model.insertReply(thing, target: target)
         }
-        .overlay {
-            if let target = menuTarget {
-                CommentActionMenu(
-                    comment: target.comment,
-                    isOP: target.comment.author != nil && target.comment.author == model.post?.author,
-                    onDismiss: { menuTarget = nil },
-                    onReply: {
-                        let c = target.comment
-                        menuTarget = nil
-                        reply(to: c, depth: target.depth)
-                    },
-                    onViewUser: { user in
-                        menuTarget = nil
-                        router.push(.user(user))
-                    }
-                )
-            }
-        }
-        .animation(.spring(duration: 0.3), value: menuTarget?.id)
         .task {
             if model.items.isEmpty {
                 model.sort = CommentSort(rawValue: defaultSort) ?? .confidence
@@ -347,10 +322,31 @@ struct PostDetailView: View {
             CommentRow(comment: comment,
                        depth: depth,
                        isOP: comment.author != nil && comment.author == model.post?.author,
-                       collapsed: model.collapsed.contains(comment.name))
+                       collapsed: model.collapsed.contains(comment.name),
+                       selected: selectedComment == comment.name,
+                       onReply: {
+                           selectedComment = nil
+                           reply(to: comment, depth: depth)
+                       },
+                       onCollapse: {
+                           withAnimation(.snappy) {
+                               selectedComment = nil
+                               model.toggleCollapse(comment.name)
+                           }
+                       },
+                       onViewUser: { user in
+                           selectedComment = nil
+                           router.push(.user(user))
+                       })
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    withAnimation(.snappy) { model.toggleCollapse(comment.name) }
+                    withAnimation(.snappy) {
+                        if model.collapsed.contains(comment.name) {
+                            model.toggleCollapse(comment.name)
+                        } else {
+                            selectedComment = selectedComment == comment.name ? nil : comment.name
+                        }
+                    }
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
@@ -379,10 +375,6 @@ struct PostDetailView: View {
                         Image(systemName: "arrow.down.right.and.arrow.up.left")
                     }
                     .tint(.gray)
-                }
-                .onLongPressGesture(minimumDuration: 0.35) {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    menuTarget = CommentMenuTarget(comment: comment, depth: depth)
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
