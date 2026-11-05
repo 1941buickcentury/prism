@@ -59,7 +59,7 @@ struct FeedView: View {
     @Environment(\.horizontalSizeClass) private var hSize
     @Environment(Router.self) private var router
     @Environment(ThemeManager.self) private var theme
-    @AppStorage("compactMode") private var compact = false
+    @AppStorage("compactMode") private var compact = true
     private let onSelect: ((Post) -> Void)?
     private let selectedName: String?
 

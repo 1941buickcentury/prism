@@ -423,6 +423,7 @@ struct PostDetailHeader: View {
             Text(post.title)
                 .font(.title3.weight(.bold))
             PostBadges(post: post)
+            // For a link/webpage post this is a slim source row, so the comments sit right below.
             MediaBlock(post: post, isDetail: true)
             if let text = post.selftext, !text.isEmpty {
                 MarkdownText(text: text)

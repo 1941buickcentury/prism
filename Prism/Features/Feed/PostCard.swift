@@ -5,28 +5,20 @@ struct PostCard: View {
     var onSelect: ((Post) -> Void)? = nil
     var isSelected: Bool = false
     @Environment(Router.self) private var router
-    @AppStorage("compactMode") private var compact = false
+    @AppStorage("compactMode") private var compact = true
 
-    private var radius: CGFloat { compact ? 18 : 26 }
+    private var radius: CGFloat { compact ? 16 : 26 }
+
+    private func open() {
+        if let onSelect { onSelect(post) } else { router.push(.post(post)) }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 6 : 10) {
-            PostMetaLine(post: post)
-            Text(post.title)
-                .font(compact ? .subheadline.weight(.semibold) : .headline)
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.leading)
-            PostBadges(post: post)
-            MediaBlock(post: post, isDetail: false)
-            if post.isSelf == true, let text = post.selftext, !text.isEmpty {
-                MarkdownText(text: text)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(compact ? 2 : 4)
-            }
-            PostActionsRow(post: post)
+        Group {
+            if compact { CompactPostRow(post: post, onOpen: open) }
+            else { LargePostCard(post: post) }
         }
-        .padding(compact ? 11 : 14)
+        .padding(compact ? 10 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: radius)
         .overlay {
@@ -36,13 +28,152 @@ struct PostCard: View {
             }
         }
         .contentShape(.rect(cornerRadius: radius))
-        .onTapGesture {
-            if let onSelect {
-                onSelect(post)
-            } else {
-                router.push(.post(post))
+        .onTapGesture { open() }
+    }
+}
+
+/// The roomy card: full-width media, used when Compact layout is off.
+struct LargePostCard: View {
+    let post: Post
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PostMetaLine(post: post)
+            Text(post.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+            PostBadges(post: post)
+            MediaBlock(post: post, isDetail: false, interactiveLinks: false)
+            if post.isSelf == true, let text = post.selftext, !text.isEmpty {
+                MarkdownText(text: text)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(4)
             }
+            PostActionsRow(post: post)
         }
+    }
+}
+
+/// The dense row: title and meta beside a small thumbnail, in the spirit of Apollo/Boost/Sync
+/// compact modes. Tapping an image or video opens the viewer; everything else opens the comments.
+struct CompactPostRow: View {
+    let post: Post
+    let onOpen: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 11) {
+            VStack(alignment: .leading, spacing: 5) {
+                CompactMetaLine(post: post)
+                Text(post.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                PostBadges(post: post)
+                PostActionsRow(post: post, compact: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            CompactThumbnail(post: post, onOpenPost: onOpen)
+        }
+    }
+}
+
+struct CompactMetaLine: View {
+    let post: Post
+    @Environment(Router.self) private var router
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button { router.push(.feed(.subreddit(post.subreddit))) } label: {
+                Text(post.subredditPrefixed).fontWeight(.semibold).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            Text("• \(post.created.shortAgo)")
+            if post.stickied == true { Image(systemName: "pin.fill").foregroundStyle(.green) }
+            if post.locked == true { Image(systemName: "lock.fill").foregroundStyle(.yellow) }
+            Spacer(minLength: 0)
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+}
+
+/// Small square preview for the compact row. Images and video open the viewer; link and
+/// text posts fall through to the row's tap, which opens the comments.
+struct CompactThumbnail: View {
+    let post: Post
+    let onOpenPost: () -> Void
+
+    @Environment(Router.self) private var router
+    @AppStorage("blurNSFW") private var blurNSFW = true
+
+    private var media: PostMedia { post.resolvedMedia }
+    private var hidden: Bool { blurNSFW && (post.over18 == true || post.spoiler == true) }
+    private let side: CGFloat = 78
+
+    var body: some View {
+        switch media {
+        case .images(let images):
+            thumb(url: post.previewURL ?? images.first?.url, glyph: images.count > 1 ? "square.stack.fill" : nil)
+                .onTapGesture { openViewer() }
+        case .video:
+            thumb(url: post.previewURL, glyph: "play.fill")
+                .onTapGesture { openViewer() }
+        case .link:
+            thumb(url: post.thumbnailURL, glyph: "link", corner: "arrow.up.right")
+                .onTapGesture { onOpenPost() }
+        case .none:
+            EmptyView()
+        }
+    }
+
+    private func openViewer() {
+        if hidden { onOpenPost() } else { router.media = MediaPresentation(media: media, title: post.title) }
+    }
+
+    @ViewBuilder
+    private func thumb(url: URL?, glyph: String?, corner: String? = nil) -> some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(.secondary.opacity(0.12))
+            .frame(width: side, height: side)
+            .overlay {
+                if let url, !hidden {
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        ProgressView()
+                    }
+                } else if url == nil {
+                    Image(systemName: "link").font(.title3).foregroundStyle(.secondary)
+                }
+            }
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay {
+                if hidden {
+                    Image(systemName: "eye.slash.fill").foregroundStyle(.white)
+                } else if let glyph, glyph != "link" {
+                    Image(systemName: glyph)
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(6)
+                        .background(.black.opacity(0.4), in: .circle)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if let corner, !hidden {
+                    Image(systemName: corner)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(4)
+                        .background(.black.opacity(0.45), in: .circle)
+                        .padding(4)
+                }
+            }
+            .blur(radius: hidden ? 18 : 0)
+            .contentShape(.rect(cornerRadius: 12))
     }
 }
 
@@ -104,6 +235,7 @@ struct PostBadges: View {
 
 struct PostActionsRow: View {
     let post: Post
+    var compact: Bool = false
     @Environment(ActionStore.self) private var actions
 
     var body: some View {
@@ -111,8 +243,8 @@ struct PostActionsRow: View {
         let saved = actions.isSaved(post.name, original: post.saved)
         let score = actions.score(for: post.name, base: post.score, original: post.likes)
 
-        HStack(spacing: 18) {
-            HStack(spacing: 8) {
+        HStack(spacing: compact ? 14 : 18) {
+            HStack(spacing: compact ? 6 : 8) {
                 Button {
                     actions.toggleVote(post.name, original: post.likes, direction: 1)
                 } label: {
@@ -140,11 +272,13 @@ struct PostActionsRow: View {
                     .foregroundStyle(saved ? Color.green : Color.secondary)
                     .contentShape(Rectangle())
             }
-            ShareLink(item: post.permalinkURL) {
-                Image(systemName: "square.and.arrow.up")
+            if !compact {
+                ShareLink(item: post.permalinkURL) {
+                    Image(systemName: "square.and.arrow.up")
+                }
             }
         }
-        .font(.subheadline.weight(.medium))
+        .font(compact ? .caption.weight(.medium) : .subheadline.weight(.medium))
         .foregroundStyle(.secondary)
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: vote)
@@ -159,10 +293,13 @@ struct PostActionsRow: View {
     }
 }
 
-/// Image, gallery, video or link preview for a post. Tapping opens the full-screen viewer.
+/// Image, gallery, video or link preview for a post. Tapping an image or video opens the
+/// full-screen viewer. In the feed, link previews are non-interactive so the card tap opens
+/// the comments; in the post detail they're buttons that open the link.
 struct MediaBlock: View {
     let post: Post
     let isDetail: Bool
+    var interactiveLinks: Bool = true
 
     @Environment(Router.self) private var router
     @AppStorage("blurNSFW") private var blurNSFW = true
@@ -201,7 +338,7 @@ struct MediaBlock: View {
                 }
                 .onTapGesture { open() }
         case .link(let url):
-            LinkCard(url: url, thumbnail: post.thumbnailURL, hidden: hidden)
+            LinkCard(url: url, thumbnail: post.thumbnailURL, hidden: hidden, interactive: interactiveLinks)
         case .none:
             EmptyView()
         }
@@ -254,48 +391,53 @@ struct LinkCard: View {
     let url: URL
     let thumbnail: URL?
     var hidden = false
+    var interactive: Bool = true
 
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        Button {
-            openURL(url)
-        } label: {
-            HStack(spacing: 12) {
-                Group {
-                    if let thumbnail, !hidden {
-                        AsyncImage(url: thumbnail) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Color.secondary.opacity(0.15)
-                        }
-                    } else {
-                        Image(systemName: "link")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.secondary.opacity(0.12))
-                    }
-                }
-                .frame(width: 56, height: 56)
-                .clipShape(.rect(cornerRadius: 12))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(url.host() ?? url.absoluteString)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    Text(url.absoluteString)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(10)
-            .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+        if interactive {
+            Button { openURL(url) } label: { content }
+                .buttonStyle(.plain)
+        } else {
+            content
         }
-        .buttonStyle(.plain)
+    }
+
+    private var content: some View {
+        HStack(spacing: 12) {
+            Group {
+                if let thumbnail, !hidden {
+                    AsyncImage(url: thumbnail) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Color.secondary.opacity(0.15)
+                    }
+                } else {
+                    Image(systemName: "link")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.secondary.opacity(0.12))
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(.rect(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(url.host() ?? url.absoluteString)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(url.absoluteString)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: interactive ? "arrow.up.right" : "chevron.right")
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(.fill.tertiary, in: .rect(cornerRadius: 16))
     }
 }

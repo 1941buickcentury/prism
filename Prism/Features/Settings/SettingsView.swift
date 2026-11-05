@@ -84,7 +84,7 @@ struct SettingsView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(ThemeManager.self) private var theme
     @AppStorage("glassCards") private var glassCards = true
-    @AppStorage("compactMode") private var compact = false
+    @AppStorage("compactMode") private var compact = true
     @AppStorage("blurNSFW") private var blurNSFW = true
     @AppStorage("openLinksInApp") private var openLinksInApp = true
     @AppStorage("commentSort") private var commentSort = CommentSort.confidence.rawValue
