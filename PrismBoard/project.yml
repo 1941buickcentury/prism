@@ -15,8 +15,8 @@ targets:
     type: application
     platform: iOS
     sources:
-      - PrismBoard/App
-      - PrismBoard/Shared
+      - App
+      - Shared
     dependencies:
       - target: Keyboard
         embed: true
@@ -26,10 +26,10 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CODE_SIGN_ENTITLEMENTS: PrismBoard/App/App.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/App.entitlements
         GENERATE_INFOPLIST_FILE: NO
     info:
-      path: PrismBoard/App/Info.plist
+      path: App/Info.plist
       properties:
         CFBundleDisplayName: PrismBoard
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -44,16 +44,16 @@ targets:
     type: app-extension
     platform: iOS
     sources:
-      - PrismBoard/Keyboard
-      - PrismBoard/Shared
+      - Keyboard
+      - Shared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shotatredline.prismboard.keyboard
         TARGETED_DEVICE_FAMILY: "1"
-        CODE_SIGN_ENTITLEMENTS: PrismBoard/Keyboard/Keyboard.entitlements
+        CODE_SIGN_ENTITLEMENTS: Keyboard/Keyboard.entitlements
         GENERATE_INFOPLIST_FILE: NO
     info:
-      path: PrismBoard/Keyboard/Info.plist
+      path: Keyboard/Info.plist
       properties:
         CFBundleDisplayName: Prism Keyboard
         CFBundleShortVersionString: $(MARKETING_VERSION)
