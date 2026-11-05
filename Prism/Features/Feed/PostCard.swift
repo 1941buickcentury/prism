@@ -16,7 +16,7 @@ struct PostCard: View {
     var body: some View {
         Group {
             if compact { CompactPostRow(post: post, onOpen: open) }
-            else { LargePostCard(post: post) }
+            else { LargePostCard(post: post, onOpen: open) }
         }
         .padding(compact ? 10 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -35,6 +35,7 @@ struct PostCard: View {
 /// The roomy card: full-width media, used when Compact layout is off.
 struct LargePostCard: View {
     let post: Post
+    let onOpen: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -51,7 +52,7 @@ struct LargePostCard: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(4)
             }
-            PostActionsRow(post: post)
+            PostActionsRow(post: post, onComments: onOpen)
         }
     }
 }
@@ -72,7 +73,7 @@ struct CompactPostRow: View {
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
                 PostBadges(post: post)
-                PostActionsRow(post: post, compact: true)
+                PostActionsRow(post: post, compact: true, onComments: onOpen)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             CompactThumbnail(post: post, onOpenPost: onOpen)
@@ -236,45 +237,59 @@ struct PostBadges: View {
 struct PostActionsRow: View {
     let post: Post
     var compact: Bool = false
+    var onComments: (() -> Void)? = nil
     @Environment(ActionStore.self) private var actions
+
+    // Generous vertical padding gives each control a ~40pt tall tap target even though
+    // the glyphs are small, so taps register instead of falling through to the card.
+    private var hitPad: CGFloat { compact ? 9 : 10 }
 
     var body: some View {
         let vote = actions.vote(for: post.name, original: post.likes)
         let saved = actions.isSaved(post.name, original: post.saved)
         let score = actions.score(for: post.name, base: post.score, original: post.likes)
 
-        HStack(spacing: compact ? 14 : 18) {
-            HStack(spacing: compact ? 6 : 8) {
-                Button {
-                    actions.toggleVote(post.name, original: post.likes, direction: 1)
-                } label: {
-                    Image(systemName: vote == 1 ? "arrow.up.circle.fill" : "arrow.up")
-                        .foregroundStyle(vote == 1 ? Color.orange : Color.secondary)
-                        .contentShape(Rectangle())
-                }
-                Text(score.compact)
-                    .monospacedDigit()
-                    .foregroundStyle(Self.color(for: vote))
-                Button {
-                    actions.toggleVote(post.name, original: post.likes, direction: -1)
-                } label: {
-                    Image(systemName: vote == -1 ? "arrow.down.circle.fill" : "arrow.down")
-                        .foregroundStyle(vote == -1 ? Color.blue : Color.secondary)
-                        .contentShape(Rectangle())
-                }
+        HStack(spacing: compact ? 4 : 8) {
+            Button {
+                actions.toggleVote(post.name, original: post.likes, direction: 1)
+            } label: {
+                Image(systemName: vote == 1 ? "arrow.up.circle.fill" : "arrow.up")
+                    .foregroundStyle(vote == 1 ? Color.orange : Color.secondary)
+                    .padding(.vertical, hitPad).padding(.horizontal, 5)
+                    .contentShape(Rectangle())
             }
-            Label(post.numComments.compact, systemImage: "bubble.left")
+            Text(score.compact)
+                .monospacedDigit()
+                .foregroundStyle(Self.color(for: vote))
+            Button {
+                actions.toggleVote(post.name, original: post.likes, direction: -1)
+            } label: {
+                Image(systemName: vote == -1 ? "arrow.down.circle.fill" : "arrow.down")
+                    .foregroundStyle(vote == -1 ? Color.blue : Color.secondary)
+                    .padding(.vertical, hitPad).padding(.horizontal, 5)
+                    .contentShape(Rectangle())
+            }
+            Button {
+                onComments?()
+            } label: {
+                Label(post.numComments.compact, systemImage: "bubble.left")
+                    .padding(.vertical, hitPad).padding(.horizontal, 6)
+                    .contentShape(Rectangle())
+            }
             Spacer(minLength: 0)
             Button {
                 actions.toggleSave(post.name, original: post.saved)
             } label: {
                 Image(systemName: saved ? "bookmark.fill" : "bookmark")
                     .foregroundStyle(saved ? Color.green : Color.secondary)
+                    .padding(.vertical, hitPad).padding(.horizontal, 6)
                     .contentShape(Rectangle())
             }
             if !compact {
                 ShareLink(item: post.permalinkURL) {
                     Image(systemName: "square.and.arrow.up")
+                        .padding(.vertical, hitPad).padding(.horizontal, 6)
+                        .contentShape(Rectangle())
                 }
             }
         }
