@@ -1,4 +1,94 @@
 import SwiftUI
+import UIKit
+
+/// A bottom-docked action menu for a long-pressed comment. Replaces the native context menu,
+/// which on the unfolded display throws the lifted comment to one side and the menu to the other.
+/// This stays anchored to the bottom of the comments, matching the reply composer.
+struct CommentActionMenu: View {
+    let comment: Comment
+    let isOP: Bool
+    let onDismiss: () -> Void
+    let onReply: () -> Void
+    let onViewUser: (String) -> Void
+    @Environment(ActionStore.self) private var actions
+
+    private var permalinkURL: URL? {
+        comment.permalink.flatMap { URL(string: "https://www.reddit.com\($0)") }
+    }
+
+    var body: some View {
+        let vote = actions.vote(for: comment.name, original: comment.likes)
+        let saved = actions.isSaved(comment.name, original: comment.saved)
+
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+                .onTapGesture { onDismiss() }
+
+            VStack(spacing: 0) {
+                HStack(spacing: 6) {
+                    Text(comment.author ?? "[deleted]")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isOP ? Color.blue : .primary)
+                    if isOP { Pill(text: "OP", color: .blue) }
+                    Spacer(minLength: 0)
+                }
+                Text(comment.body ?? "")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
+                Divider().padding(.vertical, 10)
+
+                row("arrow.up", "Upvote", tint: vote == 1 ? .orange : nil) {
+                    actions.toggleVote(comment.name, original: comment.likes, direction: 1); onDismiss()
+                }
+                row("arrow.down", "Downvote", tint: vote == -1 ? .blue : nil) {
+                    actions.toggleVote(comment.name, original: comment.likes, direction: -1); onDismiss()
+                }
+                row("arrowshape.turn.up.left", "Reply") { onReply() }
+                row(saved ? "bookmark.fill" : "bookmark", saved ? "Unsave" : "Save", tint: saved ? .green : nil) {
+                    actions.toggleSave(comment.name, original: comment.saved); onDismiss()
+                }
+                row("doc.on.doc", "Copy Text") {
+                    UIPasteboard.general.string = comment.body; onDismiss()
+                }
+                if let author = comment.author, author != "[deleted]" {
+                    row("person", "View u/\(author)") { onViewUser(author) }
+                }
+                if let url = permalinkURL {
+                    ShareLink(item: url) { rowLabel("square.and.arrow.up", "Share") }
+                        .buttonStyle(.plain)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: 680)
+            .background(.regularMaterial, in: .rect(cornerRadius: 26))
+            .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(.white.opacity(0.1)))
+            .padding(10)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func row(_ icon: String, _ label: String, tint: Color? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) { rowLabel(icon, label, tint: tint) }
+            .buttonStyle(.plain)
+    }
+
+    private func rowLabel(_ icon: String, _ label: String, tint: Color? = nil) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .frame(width: 24)
+                .foregroundStyle(tint ?? .primary)
+            Text(label).foregroundStyle(.primary)
+            Spacer(minLength: 0)
+        }
+        .font(.body)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+    }
+}
 
 struct CommentRow: View {
     let comment: Comment

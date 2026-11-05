@@ -157,9 +157,16 @@ final class PostDetailModel {
     }
 }
 
+struct CommentMenuTarget: Identifiable {
+    let comment: Comment
+    let depth: Int
+    var id: String { comment.name }
+}
+
 struct PostDetailView: View {
     @State private var model: PostDetailModel
     @State private var composer: ComposerTarget?
+    @State private var menuTarget: CommentMenuTarget?
     @Environment(RedditClient.self) private var client
     @Environment(ActionStore.self) private var actions
     @Environment(Router.self) private var router
@@ -192,6 +199,25 @@ struct PostDetailView: View {
         .composer($composer) { thing, target in
             model.insertReply(thing, target: target)
         }
+        .overlay {
+            if let target = menuTarget {
+                CommentActionMenu(
+                    comment: target.comment,
+                    isOP: target.comment.author != nil && target.comment.author == model.post?.author,
+                    onDismiss: { menuTarget = nil },
+                    onReply: {
+                        let c = target.comment
+                        menuTarget = nil
+                        reply(to: c, depth: target.depth)
+                    },
+                    onViewUser: { user in
+                        menuTarget = nil
+                        router.push(.user(user))
+                    }
+                )
+            }
+        }
+        .animation(.spring(duration: 0.3), value: menuTarget?.id)
         .task {
             if model.items.isEmpty {
                 model.sort = CommentSort(rawValue: defaultSort) ?? .confidence
@@ -354,8 +380,9 @@ struct PostDetailView: View {
                     }
                     .tint(.gray)
                 }
-                .contextMenu {
-                    commentMenu(comment, depth: depth)
+                .onLongPressGesture(minimumDuration: 0.35) {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    menuTarget = CommentMenuTarget(comment: comment, depth: depth)
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -371,33 +398,6 @@ struct PostDetailView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-        }
-    }
-
-    @ViewBuilder
-    private func commentMenu(_ comment: Comment, depth: Int) -> some View {
-        Button("Upvote", systemImage: "arrow.up") {
-            actions.toggleVote(comment.name, original: comment.likes, direction: 1)
-        }
-        Button("Downvote", systemImage: "arrow.down") {
-            actions.toggleVote(comment.name, original: comment.likes, direction: -1)
-        }
-        Button("Reply", systemImage: "arrowshape.turn.up.left") {
-            reply(to: comment, depth: depth)
-        }
-        Button(actions.isSaved(comment.name, original: comment.saved) ? "Unsave" : "Save", systemImage: "bookmark") {
-            actions.toggleSave(comment.name, original: comment.saved)
-        }
-        Button("Copy Text", systemImage: "doc.on.doc") {
-            UIPasteboard.general.string = comment.body
-        }
-        if let author = comment.author, author != "[deleted]" {
-            Button("View u/\(author)", systemImage: "person") {
-                router.push(.user(author))
-            }
-        }
-        if let permalink = comment.permalink, let url = URL(string: "https://www.reddit.com\(permalink)") {
-            ShareLink(item: url)
         }
     }
 
