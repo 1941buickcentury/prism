@@ -235,8 +235,6 @@ struct MessageDetailView: View {
                 }
             }
         }
-        .sheet(item: $composer) { target in
-            ComposerView(target: target) { _ in sent = true }
-        }
+        .composer($composer) { _, _ in sent = true }
     }
 }

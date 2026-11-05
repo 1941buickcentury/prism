@@ -189,10 +189,8 @@ struct PostDetailView: View {
         .background(AmbientBackground())
         .navigationTitle(model.post?.subredditPrefixed ?? "Post")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $composer) { target in
-            ComposerView(target: target) { thing in
-                model.insertReply(thing, target: target)
-            }
+        .composer($composer) { thing, target in
+            model.insertReply(thing, target: target)
         }
         .task {
             if model.items.isEmpty {
