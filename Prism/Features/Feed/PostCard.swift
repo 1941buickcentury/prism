@@ -242,7 +242,8 @@ struct PostActionsRow: View {
 
     // Generous vertical padding gives each control a ~40pt tall tap target even though
     // the glyphs are small, so taps register instead of falling through to the card.
-    private var hitPad: CGFloat { compact ? 9 : 10 }
+    private var hitPad: CGFloat { 11 }
+    private var arrowFont: Font { .system(size: 20, weight: .semibold) }
 
     var body: some View {
         let vote = actions.vote(for: post.name, original: post.likes)
@@ -254,8 +255,9 @@ struct PostActionsRow: View {
                 actions.toggleVote(post.name, original: post.likes, direction: 1)
             } label: {
                 Image(systemName: vote == 1 ? "arrow.up.circle.fill" : "arrow.up")
+                    .font(arrowFont)
                     .foregroundStyle(vote == 1 ? Color.orange : Color.secondary)
-                    .padding(.vertical, hitPad).padding(.horizontal, 5)
+                    .padding(.vertical, hitPad).padding(.horizontal, 7)
                     .contentShape(Rectangle())
             }
             Text(score.compact)
@@ -265,8 +267,9 @@ struct PostActionsRow: View {
                 actions.toggleVote(post.name, original: post.likes, direction: -1)
             } label: {
                 Image(systemName: vote == -1 ? "arrow.down.circle.fill" : "arrow.down")
+                    .font(arrowFont)
                     .foregroundStyle(vote == -1 ? Color.blue : Color.secondary)
-                    .padding(.vertical, hitPad).padding(.horizontal, 5)
+                    .padding(.vertical, hitPad).padding(.horizontal, 7)
                     .contentShape(Rectangle())
             }
             Button {
@@ -293,7 +296,7 @@ struct PostActionsRow: View {
                 }
             }
         }
-        .font(compact ? .caption.weight(.medium) : .subheadline.weight(.medium))
+        .font(compact ? .footnote.weight(.medium) : .subheadline.weight(.medium))
         .foregroundStyle(.secondary)
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: vote)
