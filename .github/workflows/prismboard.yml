@@ -28,21 +28,35 @@ jobs:
           cd PrismBoard
           xcodegen generate
 
-      - name: Build (simulator, unsigned)
+      - name: Build (device, unsigned)
         run: |
           set -o pipefail
           cd PrismBoard
           xcodebuild \
             -project PrismBoard.xcodeproj \
             -scheme PrismBoard \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build 2>&1 | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Package .ipa
+        run: |
+          cd PrismBoard
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/PrismBoard.app Payload/
+          zip -qr PrismBoard.ipa Payload
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrismBoard-ipa
+          path: PrismBoard/PrismBoard.ipa
 
       - name: Upload build log on failure
         if: failure()
