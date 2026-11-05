@@ -84,6 +84,36 @@ final class WordEngine {
         return target
     }
 
+    /// Best dictionary word for a glide path: the ordered keys the finger crossed, with
+    /// consecutive duplicates already removed. Picks the most common word that starts and ends
+    /// on the path's endpoints and whose letters appear in order along the path.
+    func decodeGlide(_ path: String) -> String? {
+        let keys = Array(path.lowercased())
+        guard keys.count >= 2, let first = keys.first, let last = keys.last else { return nil }
+        let pathStr = String(keys)
+        var best: String?
+        var bestScore = Int.max
+        for word in ranked where word.count >= 2 {
+            guard word.first == first, word.last == last else { continue }
+            if !Self.isSubsequence(word, of: pathStr) { continue }
+            let r = rank[word] ?? Int.max
+            let score = r + abs(word.count - keys.count) * 400
+            if score < bestScore { bestScore = score; best = word }
+        }
+        return best
+    }
+
+    private static func isSubsequence(_ needle: String, of haystack: String) -> Bool {
+        var iterator = haystack.makeIterator()
+        var current = iterator.next()
+        for ch in needle {
+            while let c = current, c != ch { current = iterator.next() }
+            guard current != nil else { return false }
+            current = iterator.next()
+        }
+        return true
+    }
+
     private func edits1(_ word: String) -> Set<String> {
         var result = Set<String>()
         let chars = Array(word)

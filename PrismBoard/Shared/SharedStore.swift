@@ -64,21 +64,21 @@ final class SharedStore {
         set { defaults.set(newValue.rawValue, forKey: "kb_appearance") }
     }
     var glass: Bool {
-        get { bool("kb_glass", true) }; set { defaults.set(newValue, forKey: "kb_glass") }
+        get { bool("kb_glass", true) } set { defaults.set(newValue, forKey: "kb_glass") }
     }
     var haptics: Bool {
-        get { bool("kb_haptics", true) }; set { defaults.set(newValue, forKey: "kb_haptics") }
+        get { bool("kb_haptics", true) } set { defaults.set(newValue, forKey: "kb_haptics") }
     }
     var autocorrect: Bool {
-        get { bool("kb_autocorrect", true) }; set { defaults.set(newValue, forKey: "kb_autocorrect") }
+        get { bool("kb_autocorrect", true) } set { defaults.set(newValue, forKey: "kb_autocorrect") }
     }
     var glide: Bool {
-        get { bool("kb_glide", true) }; set { defaults.set(newValue, forKey: "kb_glide") }
+        get { bool("kb_glide", true) } set { defaults.set(newValue, forKey: "kb_glide") }
     }
     var numberRow: Bool {
-        get { bool("kb_numberrow", true) }; set { defaults.set(newValue, forKey: "kb_numberrow") }
+        get { bool("kb_numberrow", true) } set { defaults.set(newValue, forKey: "kb_numberrow") }
     }
     var tenorKey: String {
-        get { str("kb_tenor", "") }; set { defaults.set(newValue, forKey: "kb_tenor") }
+        get { str("kb_tenor", "") } set { defaults.set(newValue, forKey: "kb_tenor") }
     }
 }

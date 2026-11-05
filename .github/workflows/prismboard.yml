@@ -1,0 +1,52 @@
+name: Build PrismBoard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'PrismBoard/**'
+      - '.github/workflows/prismboard.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_27*.app | grep -viE "beta|release_candidate|_rc" | sort -V | tail -1)
+          [ -n "$XCODE" ] || XCODE=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          cd PrismBoard
+          xcodegen generate
+
+      - name: Build (simulator, unsigned)
+        run: |
+          set -o pipefail
+          cd PrismBoard
+          xcodebuild \
+            -project PrismBoard.xcodeproj \
+            -scheme PrismBoard \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prismboard-build-log
+          path: PrismBoard/build.log
