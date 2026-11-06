@@ -63,10 +63,10 @@ struct KeyView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
                 .fill(fill)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .strokeBorder(theme.keyStroke, lineWidth: 0.5)
                 )
                 .shadow(color: theme.keyShadow, radius: 0, x: 0, y: 1)
@@ -88,7 +88,7 @@ struct KeyView: View {
     @ViewBuilder
     private var labelContent: some View {
         switch cap {
-        case .char: Text(label).font(.system(size: 22))
+        case .char: Text(label).font(.system(size: 23))
         case .space: Text("space").font(.system(size: 15, weight: .medium))
         case .ret: Text("return").font(.system(size: 15, weight: .medium))
         case .shift: Image(systemName: model.shift == .locked ? "capslock.fill" : (model.shift == .on ? "shift.fill" : "shift"))
@@ -109,7 +109,7 @@ struct KeyRowView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let spacing: CGFloat = 5
+            let spacing: CGFloat = 6
             if model.layout == .split && row.count > 3 {
                 let mid = (row.count + 1) / 2
                 let half = geo.size.width / 2 - 16
@@ -122,7 +122,7 @@ struct KeyRowView: View {
                 rowStack(row, width: geo.size.width, spacing: spacing)
             }
         }
-        .frame(height: model.layout == .floating ? 40 : 46)
+        .frame(height: model.layout == .floating ? 44 : 52)
     }
 
     private func rowStack(_ keys: [KeyCap], width: CGFloat, spacing: CGFloat) -> some View {
@@ -145,7 +145,7 @@ struct KeysView: View {
     let theme: KBTheme
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: model.layout == .floating ? 9 : 11) {
             ForEach(model.rows.indices, id: \.self) { r in
                 KeyRowView(row: model.rows[r], theme: theme, model: model)
             }

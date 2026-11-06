@@ -171,7 +171,9 @@ final class KeyboardModel: ObservableObject {
 
     var keyboardHeight: CGFloat {
         let rowCount = CGFloat(rows.count)
-        let rowH: CGFloat = layout == .floating ? 40 : 46
-        return 48 + rowCount * rowH + 18
+        let rowH: CGFloat = layout == .floating ? 44 : 52
+        let rowSpacing: CGFloat = layout == .floating ? 9 : 11
+        // suggestion bar (44) + top gap, rows + inter-row spacing, bottom padding
+        return 50 + rowCount * rowH + max(rowCount - 1, 0) * rowSpacing + 16
     }
 }
