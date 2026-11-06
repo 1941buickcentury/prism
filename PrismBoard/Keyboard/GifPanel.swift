@@ -1,59 +1,63 @@
 import SwiftUI
 import UIKit
 
-/// GIF search via Tenor. Needs Full Access (for network) and a Tenor API key, which the user
-/// adds in the Prism app. Tapping a GIF copies it so it can be pasted into the conversation —
-/// keyboard extensions can't insert images directly into arbitrary apps.
+/// GIF browsing via Tenor. Needs Full Access (for network) and a Tenor API key, which the user
+/// adds in the Prism app. A text field can't be focused inside a keyboard, so this uses tappable
+/// category chips instead of search. Tapping a GIF copies it to paste into the conversation.
 struct GifPanel: View {
     @ObservedObject var model: KeyboardModel
     let theme: KBTheme
 
-    @State private var query = ""
     @State private var results: [TenorGif] = []
     @State private var loading = false
     @State private var toast: String?
+    @State private var category = "trending"
     @State private var loadTask: Task<Void, Never>?
 
+    private let categories = ["trending", "lol", "love", "yes", "no", "wow", "sad", "ok"]
     private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
     private var apiKey: String { SharedStore.shared.tenorKey }
 
     var body: some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
-                HStack {
-                    Image(systemName: "magnifyingglass").foregroundStyle(theme.subtext)
-                    TextField("Search GIFs", text: $query)
-                        .foregroundStyle(theme.text)
-                        .submitLabel(.search)
-                        .onSubmit { search(query) }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(categories, id: \.self) { cat in
+                            Text(cat.capitalized)
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(category == cat ? .white : theme.text)
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .background(Capsule().fill(category == cat ? theme.accent : theme.keyFillSpecial))
+                                .onTapGesture { category = cat; search(cat) }
+                        }
+                    }
+                    .padding(.horizontal, 8)
                 }
-                .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 10).fill(theme.keyFillSpecial))
-                Button { model.panel = .none } label: {
-                    Image(systemName: "keyboard").foregroundStyle(theme.accent)
-                }
+                Image(systemName: "keyboard").foregroundStyle(theme.accent)
+                    .frame(width: 42, height: 34)
+                    .tapKey { model.panel = .none }
+                    .padding(.trailing, 6)
             }
-            .padding(.horizontal, 8)
 
             if !model.hasFullAccess {
                 notice("Turn on Full Access for Prism Keyboard in Settings to use GIFs.")
             } else if apiKey.isEmpty {
-                notice("Add a Tenor API key in the Prism app to enable GIF search.")
+                notice("Add a Tenor API key in the Prism app to enable GIFs.")
             } else if loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 6) {
                         ForEach(results) { gif in
-                            Button { copy(gif) } label: {
-                                AsyncImage(url: URL(string: gif.preview)) { image in
-                                    image.resizable().scaledToFill()
-                                } placeholder: {
-                                    RoundedRectangle(cornerRadius: 8).fill(theme.keyFillSpecial)
-                                }
-                                .frame(height: 92)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            AsyncImage(url: URL(string: gif.preview)) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                RoundedRectangle(cornerRadius: 8).fill(theme.keyFillSpecial)
                             }
+                            .frame(height: 92)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .onTapGesture { copy(gif) }
                         }
                     }
                     .padding(.horizontal, 8)
@@ -70,7 +74,7 @@ struct GifPanel: View {
                     .padding(.bottom, 8)
             }
         }
-        .onAppear { if results.isEmpty { search("trending") } }
+        .onAppear { if results.isEmpty { search(category) } }
     }
 
     private func notice(_ text: String) -> some View {
@@ -86,12 +90,11 @@ struct GifPanel: View {
         guard model.hasFullAccess, !apiKey.isEmpty else { return }
         loadTask?.cancel()
         loading = true
-        let q = term.trimmingCharacters(in: .whitespaces)
-        let path = q.isEmpty || q == "trending" ? "featured" : "search"
-        var comps = URLComponents(string: "https://tenor.googleapis.com/v2/\(path)")!
+        let isTrending = term == "trending"
+        var comps = URLComponents(string: "https://tenor.googleapis.com/v2/\(isTrending ? "featured" : "search")")!
         comps.queryItems = [
             URLQueryItem(name: "key", value: apiKey),
-            URLQueryItem(name: "q", value: q.isEmpty ? "trending" : q),
+            URLQueryItem(name: "q", value: isTrending ? "trending" : term),
             URLQueryItem(name: "limit", value: "24"),
             URLQueryItem(name: "media_filter", value: "tinygif,gif"),
             URLQueryItem(name: "client_key", value: "prismboard")

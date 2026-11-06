@@ -26,13 +26,15 @@ struct KeyboardRootView: View {
 
     private var background: some View {
         ZStack {
-            (model.dark ? Color(red: 0.06, green: 0.06, blue: 0.08) : Color(red: 0.82, green: 0.83, blue: 0.86))
-            if model.dark {
-                RadialGradient(
-                    colors: [model.accent.color.opacity(0.20), .clear],
-                    center: .top, startRadius: 0, endRadius: 360
-                )
+            if model.glass {
+                Rectangle().fill(.ultraThinMaterial)
+            } else {
+                (model.dark ? Color(red: 0.09, green: 0.09, blue: 0.11) : Color(red: 0.82, green: 0.83, blue: 0.86))
             }
+            LinearGradient(
+                colors: [model.accent.color.opacity(model.dark ? 0.18 : 0.10), .clear],
+                startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.55)
+            )
         }
         .ignoresSafeArea()
     }

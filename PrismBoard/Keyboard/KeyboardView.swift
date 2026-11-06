@@ -7,11 +7,12 @@ struct KBTheme {
     let dark: Bool
     let glass: Bool
 
-    var keyFill: Color { dark ? Color.white.opacity(0.16) : Color.white }
-    var keyFillSpecial: Color { dark ? Color.white.opacity(0.07) : Color.black.opacity(0.09) }
+    var keyFill: Color { dark ? Color.white.opacity(0.18) : Color.white.opacity(0.92) }
+    var keyFillSpecial: Color { dark ? Color.white.opacity(0.09) : Color.black.opacity(0.07) }
+    var keyStroke: Color { dark ? Color.white.opacity(0.14) : Color.black.opacity(0.05) }
     var text: Color { dark ? .white : .black }
     var subtext: Color { dark ? Color.white.opacity(0.55) : Color.black.opacity(0.5) }
-    var keyShadow: Color { dark ? .black.opacity(0.5) : .black.opacity(0.22) }
+    var keyShadow: Color { dark ? .black.opacity(0.35) : .black.opacity(0.18) }
 }
 
 // MARK: - Key sizing
@@ -26,29 +27,24 @@ private func keyWeight(_ cap: KeyCap) -> CGFloat {
     }
 }
 
-// MARK: - A single key
+// MARK: - Reliable tap for keyboard extensions
 
-struct KeyButtonStyle: ButtonStyle {
-    let theme: KBTheme
-    let fill: Color
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(fill)
-                    .shadow(color: theme.keyShadow, radius: 0, x: 0, y: 1)
-            }
-            .scaleEffect(configuration.isPressed ? 0.93 : 1)
-            .brightness(configuration.isPressed ? (theme.dark ? 0.10 : -0.05) : 0)
-            .animation(.easeOut(duration: 0.07), value: configuration.isPressed)
+/// SwiftUI `Button` and `.onTapGesture` are unreliable inside a keyboard extension's hosting
+/// view; a zero-distance drag is not, so all taps go through this.
+extension View {
+    func tapKey(_ action: @escaping () -> Void) -> some View {
+        contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onEnded { _ in action() })
     }
 }
+
+// MARK: - A single key
 
 struct KeyView: View {
     let cap: KeyCap
     let theme: KBTheme
     @ObservedObject var model: KeyboardModel
+    @GestureState private var pressed = false
 
     private var isChar: Bool { if case .char = cap { return true }; return false }
 
@@ -57,37 +53,51 @@ struct KeyView: View {
         return cap.display
     }
 
-    private var shiftActive: Bool {
-        if case .shift = cap { return model.shift != .off }
-        return false
-    }
+    private var shiftActive: Bool { if case .shift = cap { return model.shift != .off }; return false }
+    private var isGifActive: Bool { if case .gif = cap, model.panel == .gif { return true }; return false }
 
     private var fill: Color {
-        if shiftActive { return theme.accent }
-        if case .gif = cap, model.panel == .gif { return theme.accent }
+        if shiftActive || isGifActive { return theme.accent }
         return isChar ? theme.keyFill : theme.keyFillSpecial
     }
 
     var body: some View {
-        Button { model.tap(cap) } label: {
-            Group {
-                switch cap {
-                case .char: Text(label).font(.system(size: 22))
-                case .space: Text("space").font(.system(size: 15, weight: .medium))
-                case .ret: Text("return").font(.system(size: 15, weight: .medium))
-                case .shift: Image(systemName: model.shift == .locked ? "capslock.fill" : (model.shift == .on ? "shift.fill" : "shift"))
-                case .backspace: Image(systemName: "delete.left")
-                case .globe: Image(systemName: "globe")
-                case .gif: Text("GIF").font(.system(size: 14, weight: .heavy))
-                case .plane(let p): Text(KeyCap.plane(p).display).font(.system(size: 15, weight: .medium))
-                }
-            }
-            .foregroundStyle(shiftActive || (isGifActive) ? .white : theme.text)
+        ZStack {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(fill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(theme.keyStroke, lineWidth: 0.5)
+                )
+                .shadow(color: theme.keyShadow, radius: 0, x: 0, y: 1)
+            labelContent
+                .foregroundStyle(shiftActive || isGifActive ? .white : theme.text)
         }
-        .buttonStyle(KeyButtonStyle(theme: theme, fill: fill))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .brightness(pressed ? (theme.dark ? 0.12 : -0.06) : 0)
+        .scaleEffect(pressed ? 0.93 : 1)
+        .animation(.easeOut(duration: 0.06), value: pressed)
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .updating($pressed) { _, state, _ in state = true }
+                .onEnded { _ in model.tap(cap) }
+        )
     }
 
-    private var isGifActive: Bool { if case .gif = cap, model.panel == .gif { return true }; return false }
+    @ViewBuilder
+    private var labelContent: some View {
+        switch cap {
+        case .char: Text(label).font(.system(size: 22))
+        case .space: Text("space").font(.system(size: 15, weight: .medium))
+        case .ret: Text("return").font(.system(size: 15, weight: .medium))
+        case .shift: Image(systemName: model.shift == .locked ? "capslock.fill" : (model.shift == .on ? "shift.fill" : "shift"))
+        case .backspace: Image(systemName: "delete.left")
+        case .globe: Image(systemName: "globe")
+        case .gif: Text("GIF").font(.system(size: 14, weight: .heavy))
+        case .plane(let p): Text(KeyCap.plane(p).display).font(.system(size: 15, weight: .medium))
+        }
+    }
 }
 
 // MARK: - A row
@@ -112,7 +122,7 @@ struct KeyRowView: View {
                 rowStack(row, width: geo.size.width, spacing: spacing)
             }
         }
-        .frame(height: model.layout == .floating ? 38 : 44)
+        .frame(height: model.layout == .floating ? 40 : 46)
     }
 
     private func rowStack(_ keys: [KeyCap], width: CGFloat, spacing: CGFloat) -> some View {
@@ -156,29 +166,26 @@ struct SuggestionBar: View {
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 12)
             } else {
                 ForEach(Array(model.suggestions.enumerated()), id: \.offset) { index, s in
-                    Button { model.applySuggestion(s) } label: {
-                        Text(s)
-                            .font(.system(size: 17, weight: index == 0 ? .semibold : .regular))
-                            .foregroundStyle(index == 0 ? theme.accent : theme.text)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                    }
+                    Text(s)
+                        .font(.system(size: 17, weight: index == 0 ? .semibold : .regular))
+                        .foregroundStyle(index == 0 ? theme.accent : theme.text)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .tapKey { model.applySuggestion(s) }
                     if index < model.suggestions.count - 1 {
                         Rectangle().fill(theme.subtext.opacity(0.3)).frame(width: 1, height: 22)
                     }
                 }
             }
-            Button { model.panel = model.panel == .kaomoji ? .none : .kaomoji } label: {
-                Image(systemName: "face.smiling")
-                    .foregroundStyle(model.panel == .kaomoji ? theme.accent : theme.subtext)
-                    .frame(width: 40, height: 40)
-            }
-            Button { model.cycleLayout() } label: {
-                Image(systemName: layoutIcon)
-                    .foregroundStyle(model.layout == .normal ? theme.subtext : theme.accent)
-                    .frame(width: 40, height: 40)
-            }
+            Image(systemName: "face.smiling")
+                .foregroundStyle(model.panel == .kaomoji ? theme.accent : theme.subtext)
+                .frame(width: 42, height: 40)
+                .tapKey { model.panel = model.panel == .kaomoji ? .none : .kaomoji }
+            Image(systemName: layoutIcon)
+                .foregroundStyle(model.layout == .normal ? theme.subtext : theme.accent)
+                .frame(width: 42, height: 40)
+                .tapKey { model.cycleLayout() }
         }
         .frame(height: 44)
         .padding(.horizontal, 4)
@@ -206,24 +213,23 @@ struct KaomojiPanel: View {
             HStack {
                 Text("Faces").font(.subheadline.weight(.semibold)).foregroundStyle(theme.subtext)
                 Spacer()
-                Button { model.panel = .none } label: {
-                    Image(systemName: "keyboard").foregroundStyle(theme.accent)
-                }
+                Image(systemName: "keyboard").foregroundStyle(theme.accent)
+                    .frame(width: 40, height: 32)
+                    .tapKey { model.panel = .none }
             }
             .padding(.horizontal, 10)
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(Kaomoji.all, id: \.self) { face in
-                        Button { model.insertSnippet(face) } label: {
-                            Text(face)
-                                .font(.system(size: 15))
-                                .foregroundStyle(theme.text)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(RoundedRectangle(cornerRadius: 10).fill(theme.keyFillSpecial))
-                        }
+                        Text(face)
+                            .font(.system(size: 15))
+                            .foregroundStyle(theme.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(theme.keyFillSpecial))
+                            .onTapGesture { model.insertSnippet(face) }
                     }
                 }
                 .padding(.horizontal, 8)
